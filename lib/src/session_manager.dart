@@ -72,7 +72,8 @@ class SessionManager {
 
     _ticker?.cancel();
     session.sessionEnd = DateTime.now().toUtc();
-    session.isValidSession = session.totalActiveSeconds >= 60;
+    // Agreement Section 1.5: sessions < 15 min earn no credit
+    session.isValidSession = session.totalActiveSeconds >= 900; // 15 min
     if (reason != null) session.invalidationReason = reason;
 
     _current = null;
