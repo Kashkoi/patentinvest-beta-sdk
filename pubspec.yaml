@@ -1,0 +1,61 @@
+name: patentinvest_beta_sdk
+description: >-
+  Client-side engagement measurement SDK for PatentInvest beta testers.
+  Tracks real usage, enforces facial-ID verification, detects idle/scripted
+  patterns, and syncs compliance data to the central API.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Biometric / Facial ID
+  local_auth: ^2.3.0
+  camera: ^0.11.0
+
+  # Local persistence
+  drift: ^2.22.0
+  sqlite3_flutter_libs: ^0.5.0
+  path_provider: ^2.1.0
+  path: ^1.9.0
+
+  # Networking
+  http: ^1.2.0
+  connectivity_plus: ^6.1.0
+
+  # Sensors (accelerometer for stationary-device detection)
+  sensors_plus: ^6.1.0
+
+  # Screenshot capture for reports
+  screenshot: ^3.0.0
+
+  # Image picker (gallery fallback)
+  image_picker: ^1.1.0
+
+  # State
+  provider: ^6.1.0
+
+  # Deep linking
+  app_links: ^6.3.0
+  flutter_secure_storage: ^9.2.0
+  share_plus: ^10.1.0
+
+  # QR code generation
+  qr_flutter: ^4.1.0
+
+  # Utilities
+  uuid: ^4.5.0
+  intl: ^0.19.0
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
