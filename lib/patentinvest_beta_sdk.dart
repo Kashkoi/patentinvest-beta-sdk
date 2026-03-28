@@ -22,5 +22,6 @@ export 'src/event_recorder.dart' show EventRecorder;
 export 'src/sync_service.dart' show SyncService;
 export 'src/report_submitter.dart' show ReportSubmitter;
 export 'src/deep_link_handler.dart' show DeepLinkHandler;
+export 'src/storage/beta_storage.dart' show BetaStorage;
 export 'src/models/models.dart';
 export 'src/widgets/widgets.dart';

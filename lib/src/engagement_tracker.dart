@@ -13,6 +13,7 @@ import 'idle_detector.dart';
 import 'models/engagement_event.dart';
 import 'report_submitter.dart';
 import 'session_manager.dart';
+import 'storage/beta_storage.dart';
 import 'sync_service.dart';
 import 'widgets/beta_status_fab.dart';
 import 'widgets/report_dialog.dart';
@@ -37,6 +38,9 @@ class BetaSDK {
 
   static bool get isActive => _tracker?.isActive ?? false;
 
+  /// Returns the previously saved beta tester ID, or null if none is stored.
+  static Future<String?> getSavedTesterId() => BetaStorage.getSavedTesterId();
+
   /// Initialise the SDK. Checks the backend to see if [userId] (derived from
   /// device or auth) is a registered beta tester. If not, the SDK stays
   /// dormant and imposes zero overhead on the host app.
@@ -45,7 +49,9 @@ class BetaSDK {
     required String appId,
     String? userId,
   }) async {
-    final effectiveUserId = userId ?? await _resolveUserId();
+    // Priority: explicit userId → saved tester ID → device UUID fallback.
+    final effectiveUserId =
+        userId ?? await BetaStorage.getSavedTesterId() ?? await _resolveUserId();
 
     // Check registration
     final registration =
