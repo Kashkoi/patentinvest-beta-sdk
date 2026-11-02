@@ -48,6 +48,7 @@ class BetaSDK {
     required String apiBaseUrl,
     required String appId,
     String? userId,
+    bool requireFacialId = true,
   }) async {
     // Priority: explicit userId → saved tester ID → device UUID fallback.
     final effectiveUserId =
@@ -62,6 +63,7 @@ class BetaSDK {
       apiBaseUrl: apiBaseUrl,
       appId: appId,
       betaTesterId: registration['id'] as String,
+      requireFacialId: requireFacialId,
     );
     await _tracker!.start();
   }
@@ -109,11 +111,15 @@ class EngagementTracker {
     required this.apiBaseUrl,
     required this.appId,
     required this.betaTesterId,
+    this.requireFacialId = true,
   });
 
   final String apiBaseUrl;
   final String appId;
   final String betaTesterId;
+
+  /// When false, sessions start without the biometric and selfie check.
+  final bool requireFacialId;
 
   late final IdleDetector idleDetector;
   late final EventRecorder eventRecorder;
@@ -158,6 +164,7 @@ class EngagementTracker {
       appId: appId,
       idleDetector: idleDetector,
       facialIdGate: facialIdGate,
+      requireFacialId: requireFacialId,
     );
 
     syncService = SyncService(

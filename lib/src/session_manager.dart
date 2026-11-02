@@ -22,6 +22,7 @@ class SessionManager {
     required this.appId,
     required this.idleDetector,
     required this.facialIdGate,
+    this.requireFacialId = true,
   });
 
   final String apiBaseUrl;
@@ -29,6 +30,7 @@ class SessionManager {
   final String appId;
   final IdleDetector idleDetector;
   final FacialIdGate facialIdGate;
+  final bool requireFacialId;
 
   BetaSession? _current;
   BetaSession? get current => _current;
@@ -38,21 +40,21 @@ class SessionManager {
   int _continuousIdleSeconds = 0;
   static const _autoEndIdleSec = 600; // 10 minutes
 
-  /// Start a new session. Runs facial-ID gate first.
+  /// Start a new session. Runs facial-ID gate first, unless [requireFacialId] is false.
   /// Returns `null` if verification fails.
   Future<BetaSession?> startSession() async {
     if (_current != null) return _current;
 
-    final result = await facialIdGate.verify();
-    if (!result.verified) return null;
+    final result = requireFacialId ? await facialIdGate.verify() : null;
+    if (result != null && !result.verified) return null;
 
     final session = BetaSession(
       id: const Uuid().v4(),
       betaTesterId: betaTesterId,
       appId: appId,
       sessionStart: DateTime.now().toUtc(),
-      facialIdVerified: true,
-      facialIdConfidence: result.confidence,
+      facialIdVerified: result != null,
+      facialIdConfidence: result?.confidence,
       deviceInfo: _collectDeviceInfo(),
     );
 
