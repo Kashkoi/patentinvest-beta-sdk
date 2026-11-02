@@ -14,7 +14,7 @@
 /// ```
 library;
 
-export 'src/engagement_tracker.dart' show BetaSDK, EngagementTracker;
+export 'src/engagement_tracker.dart' show BetaSDK, BetaSdkWrapper, EngagementTracker;
 export 'src/idle_detector.dart' show ActivityState, IdleDetector;
 export 'src/session_manager.dart' show SessionManager;
 export 'src/facial_id_gate.dart' show FacialIdGate, FacialIdResult;

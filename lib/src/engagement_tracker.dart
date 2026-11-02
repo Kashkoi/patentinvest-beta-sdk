@@ -51,12 +51,10 @@ class BetaSDK {
     bool requireFacialId = true,
   }) async {
     // Priority: explicit userId → saved tester ID → device UUID fallback.
-    final effectiveUserId =
-        userId ?? await BetaStorage.getSavedTesterId() ?? await _resolveUserId();
+    final effectiveUserId = userId ?? await BetaStorage.getSavedTesterId() ?? await _resolveUserId();
 
     // Check registration
-    final registration =
-        await _checkRegistration(apiBaseUrl, effectiveUserId, appId);
+    final registration = await _checkRegistration(apiBaseUrl, effectiveUserId, appId);
     if (registration == null) return; // not a beta tester — dormant
 
     _tracker = EngagementTracker(
@@ -70,15 +68,17 @@ class BetaSDK {
 
   /// Wraps the host [app] with the SDK overlay (gesture detector, navigator
   /// observer, lifecycle watcher, FAB).
-  static Widget wrapApp(Widget app) {
+  ///
+  /// The overlay needs text direction, so call this from `MaterialApp.builder`
+  /// and pass the app's [navigatorKey] so the report screen can open.
+  static Widget wrapApp(Widget app, {GlobalKey<NavigatorState>? navigatorKey}) {
     if (_tracker == null) return app; // dormant — no wrapping
 
-    return _BetaSdkWrapper(tracker: _tracker!, child: app);
+    return BetaSdkWrapper(tracker: _tracker!, navigatorKey: navigatorKey, child: app);
   }
 
   /// Navigator observer to attach to MaterialApp.navigatorObservers.
-  static NavigatorObserver get navigatorObserver =>
-      _tracker?._navObserver ?? NavigatorObserver();
+  static NavigatorObserver get navigatorObserver => _tracker?._navObserver ?? NavigatorObserver();
 
   static Future<String> _resolveUserId() async {
     // Fallback: use a device-stable ID. In production you'd pull from
@@ -136,8 +136,7 @@ class EngagementTracker {
 
   String? _currentScreen;
 
-  final StreamController<int> _activeSecondsCtrl =
-      StreamController<int>.broadcast();
+  final StreamController<int> _activeSecondsCtrl = StreamController<int>.broadcast();
 
   /// Stream emitting cumulative active seconds for the current day.
   Stream<int> get activeSecondsStream => _activeSecondsCtrl.stream;
@@ -198,8 +197,7 @@ class EngagementTracker {
 
   // ── Event ingestion from the gesture overlay ────────────────────
 
-  void onTap(Offset position) =>
-      _record(EngagementEventType.tap, x: position.dx, y: position.dy);
+  void onTap(Offset position) => _record(EngagementEventType.tap, x: position.dx, y: position.dy);
 
   void onScroll(Offset position, double delta) => _record(
         EngagementEventType.scroll,
@@ -208,8 +206,7 @@ class EngagementTracker {
         durationMs: delta.abs().toInt(),
       );
 
-  void onLongPress(Offset position) =>
-      _record(EngagementEventType.longPress, x: position.dx, y: position.dy);
+  void onLongPress(Offset position) => _record(EngagementEventType.longPress, x: position.dx, y: position.dy);
 
   void onTextInput() => _record(EngagementEventType.textInput);
 
@@ -231,8 +228,7 @@ class EngagementTracker {
   void _onRouteChanged(String? routeName) {
     _currentScreen = routeName;
     sessionManager.recordScreenTransition();
-    _record(EngagementEventType.navigation,
-        metadata: {'screen': routeName});
+    _record(EngagementEventType.navigation, metadata: {'screen': routeName});
   }
 
   void _record(
@@ -281,32 +277,29 @@ class _BetaNavObserver extends NavigatorObserver {
   void Function(String?)? onRouteChanged;
 
   @override
-  void didPush(Route route, Route? previousRoute) =>
-      onRouteChanged?.call(route.settings.name);
+  void didPush(Route route, Route? previousRoute) => onRouteChanged?.call(route.settings.name);
 
   @override
-  void didPop(Route route, Route? previousRoute) =>
-      onRouteChanged?.call(previousRoute?.settings.name);
+  void didPop(Route route, Route? previousRoute) => onRouteChanged?.call(previousRoute?.settings.name);
 
   @override
-  void didReplace({Route? newRoute, Route? oldRoute}) =>
-      onRouteChanged?.call(newRoute?.settings.name);
+  void didReplace({Route? newRoute, Route? oldRoute}) => onRouteChanged?.call(newRoute?.settings.name);
 }
 
 // ── App wrapper widget ────────────────────────────────────────────────
 
-class _BetaSdkWrapper extends StatefulWidget {
-  const _BetaSdkWrapper({required this.tracker, required this.child});
+class BetaSdkWrapper extends StatefulWidget {
+  const BetaSdkWrapper({super.key, required this.tracker, required this.child, this.navigatorKey});
 
   final EngagementTracker tracker;
   final Widget child;
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   @override
-  State<_BetaSdkWrapper> createState() => _BetaSdkWrapperState();
+  State<BetaSdkWrapper> createState() => _BetaSdkWrapperState();
 }
 
-class _BetaSdkWrapperState extends State<_BetaSdkWrapper>
-    with WidgetsBindingObserver {
+class _BetaSdkWrapperState extends State<BetaSdkWrapper> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -336,7 +329,7 @@ class _BetaSdkWrapperState extends State<_BetaSdkWrapper>
   }
 
   void _openReportDialog() {
-    Navigator.of(context).push(MaterialPageRoute(
+    (widget.navigatorKey?.currentState ?? Navigator.of(context)).push(MaterialPageRoute(
       builder: (_) => ReportDialog(
         reportSubmitter: widget.tracker.reportSubmitter,
         screenshotController: widget.tracker.screenshotController,
@@ -351,12 +344,10 @@ class _BetaSdkWrapperState extends State<_BetaSdkWrapper>
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTapUp: (d) => widget.tracker.onTap(d.globalPosition),
-        onLongPressStart: (d) =>
-            widget.tracker.onLongPress(d.globalPosition),
+        onLongPressStart: (d) => widget.tracker.onLongPress(d.globalPosition),
         child: NotificationListener<ScrollNotification>(
           onNotification: (notif) {
-            if (notif is ScrollUpdateNotification &&
-                notif.metrics.axis == Axis.vertical) {
+            if (notif is ScrollUpdateNotification && notif.metrics.axis == Axis.vertical) {
               widget.tracker.onScroll(
                 Offset.zero,
                 notif.scrollDelta ?? 0,
@@ -364,15 +355,22 @@ class _BetaSdkWrapperState extends State<_BetaSdkWrapper>
             }
             return false;
           },
-          child: Stack(
-            children: [
-              widget.child,
-              BetaStatusFab(
-                reportSubmitter: widget.tracker.reportSubmitter,
-                onTap: _openReportDialog,
-                activeSecondsStream: widget.tracker.activeSecondsStream,
+          child: Directionality(
+            textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.child,
+                  BetaStatusFab(
+                    reportSubmitter: widget.tracker.reportSubmitter,
+                    onTap: _openReportDialog,
+                    activeSecondsStream: widget.tracker.activeSecondsStream,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
